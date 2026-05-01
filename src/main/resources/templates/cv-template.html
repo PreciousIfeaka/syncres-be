@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        body { font-family: 'Helvetica', 'Arial', sans-serif; line-height: 1.4; color: #333; margin: 30px; }
+        h1 { font-size: 22px; border-bottom: 2px solid #444; margin-bottom: 10px; }
+        h2 { font-size: 16px; margin-top: 15px; margin-bottom: 5px; color: #555; text-transform: uppercase; border-bottom: 1px solid #ddd; }
+        .summary { margin-bottom: 15px; text-align: justify; }
+        .job { margin-bottom: 15px; }
+        .job-header { font-weight: bold; display: flex; justify-content: space-between; }
+        .job-title { font-style: italic; }
+        .bullets { margin-left: 20px; margin-top: 5px; }
+        .bullet { margin-bottom: 3px; }
+        .skills { margin-bottom: 15px; }
+        .edu-item { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div class="summary">
+        <h2>Professional Summary</h2>
+        <div th:text="${cv.professionalSummary}"></div>
+    </div>
+
+    <div class="experience">
+        <h2>Experience</h2>
+        <div th:each="job : ${cv.experience}" class="job">
+            <div class="job-header">
+                <span th:text="${job.company}"></span>
+                <span th:text="${job.dates}" style="float: right;"></span>
+            </div>
+            <div class="job-title" th:text="${job.title}"></div>
+            <ul class="bullets">
+                <li th:each="bullet : ${job.bullets}" th:text="${bullet}" class="bullet"></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="skills">
+        <h2>Skills</h2>
+        <span th:each="skill, iterStat : ${cv.skills}" th:text="${skill} + ${!iterStat.last ? ', ' : ''}"></span>
+    </div>
+
+    <div class="education">
+        <h2>Education</h2>
+        <div th:each="edu : ${cv.education}" class="edu-item">
+            <div class="job-header">
+                <span th:text="${edu.institution}"></span>
+                <span th:text="${edu.year}" style="float: right;"></span>
+            </div>
+            <div th:text="${edu.degree}"></div>
+        </div>
+    </div>
+</body>
+</html>
