@@ -42,11 +42,12 @@ public class JobApplication {
     private String roleTitle;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "application_status", nullable = false, columnDefinition = "application_status")
     private ApplicationStatus applicationStatus = ApplicationStatus.SAVED;
 
     @Column(name = "match_score")
-    private Integer matchScore;
+    private Short matchScore;
 
     @Column(name = "match_summary")
     private String matchSummary;

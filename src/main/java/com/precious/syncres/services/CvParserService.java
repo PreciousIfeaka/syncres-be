@@ -1,5 +1,10 @@
 package com.precious.syncres.services;
 
+import com.precious.syncres.entities.CvDocument;
+import com.precious.syncres.repositories.CvDocumentRepository;
+import com.precious.syncres.shared.exception.AppException;
+import com.precious.syncres.shared.exception.ErrorCode;
+import com.precious.syncres.shared.util.SecurityUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -9,18 +14,37 @@ import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.UUID;
 
 @Service
 @Slf4j
 public class CvParserService {
+    private final CvDocumentRepository cvDocumentRepository;
+    private final S3Client s3Client;
+
+    public CvParserService(
+            CvDocumentRepository cvDocumentRepository,
+            S3Client s3Client
+            ) {
+        this.cvDocumentRepository = cvDocumentRepository;
+        this.s3Client = s3Client;
+    }
 
     @Value("${app.matcher.max-cv-chars:15000}")
     private int maxCvChars;
+
+    @Value("${s3.bucket-name}")
+    private String bucketName;
 
     public String parse(MultipartFile file) {
         String filename = file.getOriginalFilename();
@@ -74,10 +98,10 @@ public class CvParserService {
     private String postProcess(String text) {
         if (text == null) return "";
         
-        String processed = text.replace("\u0000", "") // Remove null bytes
-                .replaceAll("\\r\\n|\\r", "\n") // Normalize line endings
-                .replaceAll("[ \\t]+", " ") // Collapse spaces/tabs
-                .replaceAll("\\n{3,}", "\n\n") // Collapse 3+ blank lines to 2 (v2 requirement)
+        String processed = text.replace("\u0000", "")
+                .replaceAll("\\r\\n|\\r", "\n")
+                .replaceAll("[ \\t]+", " ")
+                .replaceAll("\\n{3,}", "\n\n")
                 .trim();
 
         if (processed.length() > maxCvChars) {

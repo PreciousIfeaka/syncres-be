@@ -13,11 +13,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class VerifyEmailDto {
-    @NotBlank
-    @Email
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email format")
     private String email;
 
-    @NotBlank
-    @Size(min = 6, max = 6)
+    @NotBlank(message = "OTP is required")
+    @Size(min = 6, max = 6, message = "OTP must be exactly 6 digits")
     private String otp;
 }

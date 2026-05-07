@@ -3,9 +3,7 @@ package com.precious.syncres.entities;
 import java.util.Collections;
 import java.util.Set;
 
-public enum
-
-ApplicationStatus {
+public enum ApplicationStatus {
     SAVED,
     APPLIED,
     PHONE_SCREEN,

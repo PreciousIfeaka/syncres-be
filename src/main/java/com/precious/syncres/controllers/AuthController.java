@@ -1,7 +1,8 @@
 package com.precious.syncres.controllers;
 
 import com.precious.syncres.services.AuthService;
-import com.precious.syncres.shared.dto.*;
+import com.precious.syncres.shared.dto.ChangePasswordDto;
+import com.precious.syncres.shared.dto.auth.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -45,7 +46,14 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDto dto) {
         authService.forgotPassword(dto);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok().body(Map.of("message", "OTP has been sent to your email"));
+    }
+
+    @Operation(summary = "Resend verification OTP", description = "Resends the email verification code if the user is not yet verified.")
+    @PostMapping("/resend-otp")
+    public ResponseEntity<?> resendOtp(@Valid @RequestBody ForgotPasswordRequestDto dto) {
+        authService.resendOtp(dto);
+        return ResponseEntity.accepted().body(Map.of("message", "Verification OTP resent to your email"));
     }
 
     @Operation(summary = "Reset password", description = "Resets the user password using a valid OTP.")
@@ -53,5 +61,12 @@ public class AuthController {
     public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordDto dto) {
         authService.resetPassword(dto);
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Change password", description = "Updates the password for an authenticated user. Requires current password verification.")
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordDto dto) {
+        authService.changePassword(dto);
+        return ResponseEntity.ok().body(Map.of("message", "Password updated successfully"));
     }
 }

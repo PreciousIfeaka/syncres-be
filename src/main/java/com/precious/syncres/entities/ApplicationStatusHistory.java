@@ -3,6 +3,8 @@ package com.precious.syncres.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -25,10 +27,12 @@ public class ApplicationStatusHistory {
     private JobApplication application;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "from_status", columnDefinition = "application_status")
     private ApplicationStatus fromStatus;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "to_status", nullable = false, columnDefinition = "application_status")
     private ApplicationStatus toStatus;
 

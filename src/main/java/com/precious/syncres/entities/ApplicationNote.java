@@ -27,10 +27,19 @@ public class ApplicationNote {
     @Column(nullable = false)
     private String content;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "note_type", length = 50)
-    private String noteType = "GENERAL";
+    private NoteType noteType = NoteType.GENERAL;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
+
+    public enum NoteType {
+        GENERAL,
+        INTERVIEW_PREP,
+        RECRUITER_CONTACT,
+        SALARY,
+        FOLLOW_UP
+    }
 }

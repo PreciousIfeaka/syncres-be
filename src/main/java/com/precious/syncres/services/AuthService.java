@@ -4,7 +4,8 @@ import com.precious.syncres.entities.OtpToken;
 import com.precious.syncres.entities.User;
 import com.precious.syncres.repositories.OtpTokenRepository;
 import com.precious.syncres.repositories.UserRepository;
-import com.precious.syncres.shared.dto.*;
+import com.precious.syncres.shared.dto.ChangePasswordDto;
+import com.precious.syncres.shared.dto.auth.*;
 import com.precious.syncres.shared.exception.AppException;
 import com.precious.syncres.shared.exception.ErrorCode;
 import com.precious.syncres.config.JwtTokenProvider;
@@ -51,6 +52,19 @@ public class AuthService {
     }
 
     @Transactional
+    public void resendOtp(ForgotPasswordRequestDto dto) {
+        User user = userRepository.findByEmail(dto.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND, "User not found"));
+
+        if (user.isEmailVerified()) {
+            // Already verified, no need to resend (or handle as silent success)
+            return;
+        }
+
+        jobScheduler.enqueue(() -> emailJobService.sendVerificationOtp(user.getId()));
+    }
+
+    @Transactional
     public AuthResponseDto verifyEmail(VerifyEmailDto dto) {
         User user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND, "User not found"));
@@ -87,10 +101,10 @@ public class AuthService {
 
     public AuthResponseDto login(LoginRequestDto dto) {
         User user = userRepository.findByEmail(dto.getEmail())
-                .orElseThrow(() -> new AppException(ErrorCode.JOB_ACCESS_DENIED, "Invalid credentials"));
+                .orElseThrow(() -> new AppException(ErrorCode.ACCESS_DENIED, "Invalid credentials"));
 
         if (!passwordEncoder.matches(dto.getPassword(), user.getPasswordHash())) {
-            throw new AppException(ErrorCode.JOB_ACCESS_DENIED, "Invalid credentials");
+            throw new AppException(ErrorCode.ACCESS_DENIED, "Invalid credentials");
         }
 
         if (!user.isEmailVerified()) {
@@ -135,6 +149,24 @@ public class AuthService {
         }
 
         token.setUsed(true);
+        user.setPasswordHash(passwordEncoder.encode(dto.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void changePassword(ChangePasswordDto dto) {
+        java.util.UUID userId = com.precious.syncres.shared.util.SecurityUtils.getCurrentUserId();
+        if (userId == null) {
+            throw new AppException(ErrorCode.JOB_ACCESS_DENIED, "User not authenticated");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND, "User not found"));
+
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPasswordHash())) {
+            throw new AppException(ErrorCode.JOB_ACCESS_DENIED, "Incorrect current password");
+        }
+
         user.setPasswordHash(passwordEncoder.encode(dto.getNewPassword()));
         userRepository.save(user);
     }

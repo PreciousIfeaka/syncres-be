@@ -1,4 +1,4 @@
-package com.precious.syncres.shared.dto;
+package com.precious.syncres.shared.dto.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

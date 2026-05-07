@@ -2,12 +2,14 @@ package com.precious.syncres.controllers;
 
 import com.precious.syncres.entities.ApplicationStatus;
 import com.precious.syncres.entities.ApplicationStatusHistory;
-import com.precious.syncres.entities.ApplicationNote;
 import com.precious.syncres.repositories.StatusHistoryRepository;
 import com.precious.syncres.repositories.NoteRepository;
 import com.precious.syncres.services.*;
-import com.precious.syncres.shared.dto.*;
+import com.precious.syncres.shared.dto.applications.*;
 import com.precious.syncres.shared.util.SecurityUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,88 +19,94 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controller for managing job applications and their lifecycle.
+ * Requires user authentication.
+ */
 @RestController
 @RequestMapping("/api/applications")
 @RequiredArgsConstructor
+@Tag(name = "Job Applications", description = "Endpoints for tracking job applications, status history, and notes")
 public class ApplicationController {
 
     private final ApplicationService applicationService;
-    private final ApplicationStatusService statusService;
-    private final ApplicationNoteService noteService;
-    private final ApplicationQueryService queryService;
-    private final ApplicationStatsService statsService;
-    private final StatusHistoryRepository statusHistoryRepository;
-    private final NoteRepository noteRepository;
 
+    @Operation(summary = "Create an application", description = "Manually creates a job application record.")
     @PostMapping
     public ResponseEntity<ApplicationResponseDto> create(@Valid @RequestBody ApplicationCreateDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(applicationService.createApplication(dto, SecurityUtils.getCurrentUserId()));
     }
 
+    @Operation(summary = "List applications", description = "Retrieves a filtered list of applications for the current user.")
     @GetMapping
     public ResponseEntity<List<ApplicationResponseDto>> list(
-            @RequestParam(required = false) ApplicationStatus status,
-            @RequestParam(required = false) String company) {
-        return ResponseEntity.ok(queryService.listApplications(SecurityUtils.getCurrentUserId(), status, company));
+            @Parameter(description = "Filter by application status") @RequestParam(required = false) ApplicationStatus status,
+            @Parameter(description = "Filter by company name") @RequestParam(required = false) String company) {
+        return ResponseEntity.ok(applicationService.listApplications(SecurityUtils.getCurrentUserId(), status, company));
     }
 
+
+    @Operation(summary = "Get application details", description = "Retrieves a single application by ID.")
     @GetMapping("/{id}")
     public ResponseEntity<ApplicationResponseDto> get(
-            @PathVariable UUID id,
-            @RequestParam(defaultValue = "") String include) {
-        // Simple implementation for now, v2 spec says include nested objects
-        // In a real app we'd handle this more dynamically.
-        UUID userId = SecurityUtils.getCurrentUserId();
-        ApplicationResponseDto response = queryService.listApplications(userId, null, null).stream()
-                .filter(a -> a.getId().equals(id))
-                .findFirst()
-                .orElseThrow(); // Simple lookup for demo
-
-        return ResponseEntity.ok(response);
+            @Parameter(description = "The UUID of the application") @PathVariable UUID id) {
+        return ResponseEntity.ok(applicationService.getApplication(id, SecurityUtils.getCurrentUserId()));
     }
 
+    @Operation(summary = "Update application status", description = "Transitions an application to a new status and records history.")
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApplicationResponseDto> updateStatus(
-            @PathVariable UUID id,
+            @Parameter(description = "The UUID of the application") @PathVariable UUID id,
             @Valid @RequestBody StatusUpdateDto dto) {
-        return ResponseEntity.ok(statusService.updateStatus(id, dto, SecurityUtils.getCurrentUserId()));
+        return ResponseEntity.ok(applicationService.updateStatus(id, dto, SecurityUtils.getCurrentUserId()));
     }
 
+    @Operation(summary = "Soft-delete an application", description = "Marks an application as deleted without physical removal.")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable UUID id) {
+    public ResponseEntity<?> delete(
+            @Parameter(description = "The UUID of the application to delete") @PathVariable UUID id) {
         applicationService.deleteApplication(id, SecurityUtils.getCurrentUserId());
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Get status history", description = "Returns the audit trail of status changes for an application.")
     @GetMapping("/{id}/history")
-    public ResponseEntity<List<ApplicationStatusHistory>> getHistory(@PathVariable UUID id) {
-        // Basic ownership verification should be here
-        return ResponseEntity.ok(statusHistoryRepository.findAllByApplicationIdOrderByChangedAtDesc(id));
+    public ResponseEntity<List<ApplicationStatusHistoryResponseDto>> getHistory(
+            @Parameter(description = "The UUID of the application") @PathVariable UUID id) {
+        return ResponseEntity.ok(applicationService.getStatusHistory(id));
     }
 
+    @Operation(summary = "Add a note", description = "Appends a new note (e.g., interview prep) to an application.")
     @PostMapping("/{id}/notes")
-    public ResponseEntity<Void> addNote(
-            @PathVariable UUID id,
+    public ResponseEntity<ApplicationNoteResponseDto> addNote(
+            @Parameter(description = "The UUID of the application") @PathVariable UUID id,
             @Valid @RequestBody NoteCreateDto dto) {
-        noteService.addNote(id, dto, SecurityUtils.getCurrentUserId());
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                applicationService.addNote(id, dto, SecurityUtils.getCurrentUserId())
+        );
     }
 
+    @Operation(summary = "List application notes", description = "Returns all notes associated with an application.")
     @GetMapping("/{id}/notes")
-    public ResponseEntity<List<ApplicationNote>> listNotes(@PathVariable UUID id) {
-        // Basic ownership verification should be here
-        return ResponseEntity.ok(noteRepository.findAllByApplicationIdOrderByCreatedAtDesc(id));
+    public ResponseEntity<List<ApplicationNoteResponseDto>> listNotes(
+            @Parameter(description = "The UUID of the application") @PathVariable UUID id) {
+        return ResponseEntity.ok(applicationService.listApplicationNotes(id));
     }
 
+    @Operation(summary = "Delete a note", description = "Permanently deletes a specific application note.")
     @DeleteMapping("/{id}/notes/{noteId}")
-    public ResponseEntity<?> deleteNote(@PathVariable UUID id, @PathVariable UUID noteId) {
-        noteService.deleteNote(noteId, id, SecurityUtils.getCurrentUserId());
+    public ResponseEntity<?> deleteNote(
+            @Parameter(description = "The UUID of the application") @PathVariable UUID id,
+            @Parameter(description = "The UUID of the note to delete") @PathVariable UUID noteId) {
+        applicationService.deleteNote(noteId, id, SecurityUtils.getCurrentUserId());
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Get application statistics", description = "Returns aggregate metrics (totals, status breakdown, 30-day activity).")
     @GetMapping("/stats")
     public ResponseEntity<StatsResponseDto> getStats() {
-        return ResponseEntity.ok(statsService.getStats(SecurityUtils.getCurrentUserId()));
+        return ResponseEntity.ok(applicationService.getStats(SecurityUtils.getCurrentUserId()));
     }
 }

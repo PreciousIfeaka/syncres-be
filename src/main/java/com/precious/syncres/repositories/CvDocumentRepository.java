@@ -12,5 +12,6 @@ import java.util.UUID;
 public interface CvDocumentRepository extends JpaRepository<CvDocument, UUID> {
     List<CvDocument> findAllByUserId(UUID userId);
     Optional<CvDocument> findByIdAndUserId(UUID id, UUID userId);
+    Optional<CvDocument> findByIdAndSessionId(UUID id, String sessionId);
     boolean existsByIdAndUserId(UUID id, UUID userId);
 }

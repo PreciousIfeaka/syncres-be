@@ -4,52 +4,105 @@
     <meta charset="UTF-8"/>
     <style>
         body { font-family: 'Helvetica', 'Arial', sans-serif; line-height: 1.4; color: #333; margin: 30px; }
-        h1 { font-size: 22px; border-bottom: 2px solid #444; margin-bottom: 10px; }
-        h2 { font-size: 16px; margin-top: 15px; margin-bottom: 5px; color: #555; text-transform: uppercase; border-bottom: 1px solid #ddd; }
-        .summary { margin-bottom: 15px; text-align: justify; }
+        a { color: #333; text-decoration: none; border-bottom: 1px solid #aaa; }
+        a:hover { color: #000; border-bottom-color: #000; }
+        h1 { font-size: 22px; margin-bottom: 2px; }
+        .contact-info { font-size: 12px; color: #666; margin-bottom: 15px; }
+        h2 { font-size: 14px; margin-top: 15px; margin-bottom: 5px; color: #555; text-transform: uppercase; border-bottom: 1px solid #ddd; }
+        .summary { font-size: 13px; margin-bottom: 15px; text-align: justify; }
         .job { margin-bottom: 15px; }
         .job-header { font-weight: bold; display: flex; justify-content: space-between; }
-        .job-title { font-style: italic; }
+        .job-title { font-style: italic; font-size: 13px; color: #555; }
         .bullets { margin-left: 20px; margin-top: 5px; }
-        .bullet { margin-bottom: 3px; }
-        .skills { margin-bottom: 15px; }
+        .bullet { margin-bottom: 3px; font-size: 13px; }
+        .skills { margin-bottom: 15px; font-size: 13px; }
         .edu-item { margin-bottom: 8px; }
+        .project-item { margin-bottom: 15px; }
+        .cert-item { font-size: 13px; margin-bottom: 3px; }
     </style>
 </head>
 <body>
-    <div class="summary">
-        <h2>Professional Summary</h2>
-        <div th:text="${cv.professionalSummary}"></div>
-    </div>
 
-    <div class="experience">
-        <h2>Experience</h2>
-        <div th:each="job : ${cv.experience}" class="job">
-            <div class="job-header">
-                <span th:text="${job.company}"></span>
-                <span th:text="${job.dates}" style="float: right;"></span>
-            </div>
-            <div class="job-title" th:text="${job.title}"></div>
-            <ul class="bullets">
-                <li th:each="bullet : ${job.bullets}" th:text="${bullet}" class="bullet"></li>
-            </ul>
+<!-- Header -->
+<h1 th:text="${cv.name}"></h1>
+<div class="contact-info">
+    <span th:text="${cv.location}"></span> ·
+    <span th:text="${cv.phone}"></span> ·
+    <a th:href="'mailto:' + ${cv.email}" th:text="${cv.email}"></a>
+    <span th:if="${cv.linkedin}"> · <a th:href="${cv.linkedin}" target="_blank">LinkedIn</a></span>
+    <span th:if="${cv.github}"> · <a th:href="${cv.github}" target="_blank">GitHub</a></span>
+    <span th:if="${cv.website}"> · <a th:href="${cv.website}" target="_blank" th:text="${cv.website}"></a></span>
+</div>
+
+<!-- Professional Summary -->
+<div class="summary">
+    <h2>Professional Summary</h2>
+    <div th:text="${cv.professionalSummary}"></div>
+</div>
+
+<!-- Skills -->
+<div class="skills">
+    <h2>Skills</h2>
+    <div th:if="${cv.technicalSkills}">
+        <strong>Technical Skills:</strong>
+        <span th:each="skill, iterStat : ${cv.technicalSkills}"
+              th:text="${skill} + ${!iterStat.last ? ', ' : ''}"></span>
+    </div>
+    <div th:if="${cv.softSkills}" style="margin-top: 4px;">
+        <strong>Soft Skills:</strong>
+        <span th:each="skill, iterStat : ${cv.softSkills}"
+              th:text="${skill} + ${!iterStat.last ? ', ' : ''}"></span>
+    </div>
+</div>
+
+<!-- Projects -->
+<div th:if="${cv.projects}" class="projects">
+    <h2>Projects</h2>
+    <div th:each="project : ${cv.projects}" class="project-item">
+        <div class="job-header">
+            <span th:text="${project.name}"></span>
+            <span th:text="${project.url}" style="font-weight: normal; font-size: 12px; color: #666;"></span>
         </div>
+        <ul class="bullets">
+            <li th:each="bullet : ${project.bullets}" th:text="${bullet}" class="bullet"></li>
+        </ul>
     </div>
+</div>
 
-    <div class="skills">
-        <h2>Skills</h2>
-        <span th:each="skill, iterStat : ${cv.skills}" th:text="${skill} + ${!iterStat.last ? ', ' : ''}"></span>
-    </div>
-
-    <div class="education">
-        <h2>Education</h2>
-        <div th:each="edu : ${cv.education}" class="edu-item">
-            <div class="job-header">
-                <span th:text="${edu.institution}"></span>
-                <span th:text="${edu.year}" style="float: right;"></span>
-            </div>
-            <div th:text="${edu.degree}"></div>
+<!-- Professional Experience -->
+<div class="experience">
+    <h2>Professional Experience</h2>
+    <div th:each="job : ${cv.experience}" class="job">
+        <div class="job-header">
+            <span th:text="${job.company}"></span>
+            <span th:text="${job.dates}" style="font-weight: normal; font-size: 12px; color: #666;"></span>
         </div>
+        <div class="job-title" th:text="${job.title}"></div>
+        <ul class="bullets">
+            <li th:each="bullet : ${job.bullets}" th:text="${bullet}" class="bullet"></li>
+        </ul>
     </div>
+</div>
+
+<!-- Education -->
+<div class="education">
+    <h2>Education</h2>
+    <div th:each="edu : ${cv.education}" class="edu-item">
+        <div class="job-header">
+            <span th:text="${edu.institution}"></span>
+            <span th:text="${edu.year}" style="font-weight: normal; font-size: 12px; color: #666;"></span>
+        </div>
+        <div class="job-title" th:text="${edu.degree}"></div>
+    </div>
+</div>
+
+<!-- Certifications -->
+<div th:if="${cv.certifications}" class="certifications">
+    <h2>Certifications</h2>
+    <div th:each="cert : ${cv.certifications}" class="cert-item">
+        ● <span th:text="${cert}"></span>
+    </div>
+</div>
+
 </body>
 </html>

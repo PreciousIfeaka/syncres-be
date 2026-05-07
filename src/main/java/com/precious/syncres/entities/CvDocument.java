@@ -21,8 +21,11 @@ public class CvDocument {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
+
+    @Column(name = "session_id", length = 128)
+    private String sessionId;
 
     @Column(name = "original_filename", nullable = false)
     private String originalFilename;

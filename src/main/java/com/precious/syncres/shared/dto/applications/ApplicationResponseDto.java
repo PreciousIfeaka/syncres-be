@@ -1,4 +1,4 @@
-package com.precious.syncres.shared.dto;
+package com.precious.syncres.shared.dto.applications;
 
 import com.precious.syncres.entities.ApplicationStatus;
 import lombok.AllArgsConstructor;
@@ -18,7 +18,11 @@ public class ApplicationResponseDto {
     private String companyName;
     private String roleTitle;
     private ApplicationStatus status;
-    private Integer matchScore;
+    private Short matchScore;
+    private String jdUrl;
+    private String jdText;
+    private String retailoredCVUrl;
     private OffsetDateTime createdAt;
     private OffsetDateTime appliedAt;
+    private String cvDownloadUrl;
 }

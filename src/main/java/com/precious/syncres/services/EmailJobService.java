@@ -17,14 +17,10 @@ public class EmailJobService {
     private final UserRepository userRepository;
 
     public void sendVerificationOtp(UUID userId) {
-        userRepository.findById(userId).ifPresent(user -> {
-            emailService.sendEmailVerificationOtp(user);
-        });
+        userRepository.findById(userId).ifPresent(emailService::sendEmailVerificationOtp);
     }
 
     public void sendPasswordResetOtp(UUID userId) {
-        userRepository.findById(userId).ifPresent(user -> {
-            emailService.sendPasswordResetOtp(user);
-        });
+        userRepository.findById(userId).ifPresent(emailService::sendPasswordResetOtp);
     }
 }

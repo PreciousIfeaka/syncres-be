@@ -25,6 +25,8 @@ public class MatchScorerService {
             Return ONLY valid JSON, no markdown, no preamble.
             JSON schema:
             {
+              "company_name": <string - optional, omit if not found>
+              "role_title": <string - optional, omit if not found>
               "overall_score": <integer 0-100>,
               "summary": <string, 2-3 sentences>,
               "matched_skills": [<string>, ...],
@@ -54,8 +56,12 @@ public class MatchScorerService {
     @Data
     public static class MatchResult {
         @JsonProperty("overall_score")
-        private int overallScore;
+        private Short overallScore;
         private String summary;
+        @JsonProperty("company_name")
+        private String companyName;
+        @JsonProperty("role_title")
+        private String roleTitle;
         @JsonProperty("matched_skills")
         private List<String> matchedSkills;
         @JsonProperty("missing_skills")

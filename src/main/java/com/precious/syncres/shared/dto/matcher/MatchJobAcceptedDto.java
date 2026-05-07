@@ -1,4 +1,4 @@
-package com.precious.syncres.shared.dto;
+package com.precious.syncres.shared.dto.matcher;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

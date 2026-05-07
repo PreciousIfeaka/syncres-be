@@ -1,5 +1,6 @@
 package com.precious.syncres.services;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.precious.syncres.matcher.GeminiClient;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,10 +26,13 @@ public class CvRewriterService {
             CRITICAL CONSTRAINTS:
             1. NEVER invent experience, qualifications, skills, company names, dates, or job titles the candidate does not have.
             2. MAY: reorder bullet points, strengthen action verbs, incorporate relevant JD keywords the candidate demonstrably possesses, reframe existing experience in role-relevant language, expand the professional summary.
+            3. NEVER modify URLs, email addresses, or any links found in the CV. Preserve them exactly as they appear in the original text.
             
             Return ONLY valid JSON with this exact schema:
             {
-              "professional_summary": <string>,
+              "name": <string — unchanged, required>,
+              "email": <string — unchanged, required>,
+              "professional_summary": <string, required>,
               "experience": [
                 {
                   "company": <string — unchanged>,
@@ -37,14 +41,28 @@ public class CvRewriterService {
                   "bullets": [<string>, ...]
                 }
               ],
-              "skills": [<string>, ...],
               "education": [
                 {
                   "institution": <string — unchanged>,
-                  "degree": <string — unchanged>,
-                  "year": <string — unchanged>
+                  "degree":      <string — unchanged>,
+                  "year":        <string — unchanged>
                 }
               ],
+              "phone":           <string — unchanged, omit if not present>,
+              "location":        <string — unchanged, omit if not present>,
+              "linkedin":        <string — unchanged, omit if not present>,
+              "github":          <string — unchanged, omit if not present>,
+              "website":         <string — unchanged, omit if not present>,
+              "technical_skills": [<string>, ... omit if not present],
+              "soft_skills":      [<string>, ... omit if not present],
+              "projects": [
+                {
+                  "name":    <string — unchanged, omit section if not present>,
+                  "url":     <string — unchanged, omit if not present>,
+                  "bullets": [<string>, ...]
+                }
+              ],
+              "certifications": [<string>, ... omit if not present],
               "changes": [<string>, ...]
             }
             """;
@@ -63,14 +81,32 @@ public class CvRewriterService {
 
     @Data
     public static class RewriteResult {
+        private String name;
+        private String email;
+
         @JsonProperty("professional_summary")
         private String professionalSummary;
+
         private List<Experience> experience;
-        private List<String> skills;
         private List<Education> education;
+        private String phone;
+        private String location;
+        private String linkedin;
+        private String github;
+        private String website;
+
+        @JsonProperty("technical_skills")
+        private List<String> technicalSkills;
+
+        @JsonProperty("soft_skills")
+        private List<String> softSkills;
+
+        private List<Project> projects;
+        private List<String> certifications;
         private List<String> changes;
 
         @Data
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public static class Experience {
             private String company;
             private String title;
@@ -79,6 +115,15 @@ public class CvRewriterService {
         }
 
         @Data
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        public static class Project {
+            private String name;
+            private String url;
+            private List<String> bullets;
+        }
+
+        @Data
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public static class Education {
             private String institution;
             private String degree;

@@ -1,106 +1,58 @@
 package com.precious.syncres.controllers;
 
-import com.precious.syncres.entities.CvDocument;
-import com.precious.syncres.repositories.CvDocumentRepository;
-import com.precious.syncres.services.CvParserService;
-import com.precious.syncres.shared.exception.AppException;
-import com.precious.syncres.shared.exception.ErrorCode;
-import com.precious.syncres.shared.util.SecurityUtils;
+import com.precious.syncres.services.CvUploadService;
+import com.precious.syncres.shared.dto.cv.CvDocumentResponseDto;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controller for managing CV document uploads and storage.
+ * Requires user authentication.
+ */
 @RestController
 @RequestMapping("/api/cv")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "CV Management", description = "Endpoints for uploading, listing, and deleting CV documents")
 public class CvUploadController {
 
-    private final CvParserService cvParserService;
-    private final CvDocumentRepository cvDocumentRepository;
-    private final S3Client s3Client;
+    private final CvUploadService cvUploadService;
 
-    @Value("${s3.bucket-name}")
-    private String bucketName;
-
-    @PostMapping("/upload")
-    public ResponseEntity<CvDocument> upload(@RequestParam("file") MultipartFile file) {
-        UUID userId = SecurityUtils.getCurrentUserId();
-        
-        String extractedText = cvParserService.parse(file);
-        
-        String fileId = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-        String storagePath = "user-cvs/" + userId + "/" + fileId;
-
-        try {
-            s3Client.putObject(PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(storagePath)
-                    .contentType(file.getContentType())
-                    .build(), RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-
-            CvDocument doc = CvDocument.builder()
-                    .user(com.precious.syncres.entities.User.builder().id(userId).build())
-                    .originalFilename(file.getOriginalFilename())
-                    .storagePath(storagePath)
-                    .fileType(getFileType(file.getOriginalFilename()))
-                    .fileSizeBytes(file.getSize())
-                    .extractedText(extractedText)
-                    .build();
-
-            return ResponseEntity.ok(cvDocumentRepository.save(doc));
-        } catch (Exception e) {
-            log.error("Failed to upload CV", e);
-            throw new RuntimeException("Upload failed: " + e.getMessage());
-        }
+    @Operation(summary = "Upload a CV", description = "Parses and stores a CV (PDF/DOCX) in S3. Accessible to both anonymous (session-based) and registered users. Automatically extracts text for future matching.")
+    @PostMapping(path = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CvDocumentResponseDto> upload(@RequestParam("file") MultipartFile file, jakarta.servlet.http.HttpSession session) {
+        return ResponseEntity.ok(cvUploadService.uploadCV(file, session));
     }
 
+    @Operation(summary = "List all CVs", description = "Returns a list of all CV documents uploaded by the current user.")
     @GetMapping
-    public ResponseEntity<List<CvDocument>> list() {
-        return ResponseEntity.ok(cvDocumentRepository.findAllByUserId(SecurityUtils.getCurrentUserId()));
+    public ResponseEntity<List<CvDocumentResponseDto>> list() {
+        return ResponseEntity.ok(cvUploadService.listUserCvs());
     }
 
+    @Operation(summary = "Get CV metadata", description = "Retrieves metadata for a specific CV document.")
     @GetMapping("/{id}")
-    public ResponseEntity<CvDocument> get(@PathVariable UUID id) {
-        return cvDocumentRepository.findByIdAndUserId(id, SecurityUtils.getCurrentUserId())
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<CvDocumentResponseDto> get(
+            @Parameter(description = "The UUID of the CV document") @PathVariable UUID id) {
+        return ResponseEntity.ok(cvUploadService.getCvDocument(id));
     }
 
+    @Operation(summary = "Delete a CV", description = "Removes the CV from S3 and the database.")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable UUID id) {
-        UUID userId = SecurityUtils.getCurrentUserId();
-        CvDocument doc = cvDocumentRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new AppException(ErrorCode.CV_NOT_FOUND, "CV not found"));
+    public ResponseEntity<?> delete(
+            @Parameter(description = "The UUID of the CV document to delete") @PathVariable UUID id) {
+        cvUploadService.deleteCV(id);
 
-        // TODO: Check if CV is in use by applications if needed (v2 spec says check CV not in use)
-        
-        try {
-            s3Client.deleteObject(DeleteObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(doc.getStoragePath())
-                    .build());
-            cvDocumentRepository.delete(doc);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            log.error("Failed to delete CV from S3", e);
-            throw new RuntimeException("Delete failed");
-        }
-    }
-
-    private String getFileType(String filename) {
-        if (filename == null) return "UNKNOWN";
-        String ext = filename.substring(filename.lastIndexOf(".") + 1).toUpperCase();
-        return ext.matches("PDF|DOCX|DOC") ? ext : "UNKNOWN";
+        return ResponseEntity.status(204).build();
     }
 }

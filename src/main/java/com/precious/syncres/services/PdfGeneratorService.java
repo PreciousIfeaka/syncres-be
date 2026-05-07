@@ -1,6 +1,5 @@
 package com.precious.syncres.services;
 
-import com.precious.syncres.shared.util.HmacUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,9 +7,6 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.xhtmlrenderer.pdf.ITextRenderer;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.ByteArrayOutputStream;
 import java.time.Instant;
@@ -22,13 +18,7 @@ import java.util.UUID;
 public class PdfGeneratorService {
 
     private final TemplateEngine templateEngine;
-    private final S3Client s3Client;
-
-    @Value("${s3.bucket-name}")
-    private String bucketName;
-
-    @Value("${app.jwt.secret}")
-    private String hmacSecret;
+    private final FileStorageService fileStorageService;
 
     @Value("${app.storage.pdf-expiry-hours:24}")
     private int pdfExpiryHours;
@@ -51,27 +41,19 @@ public class PdfGeneratorService {
             byte[] pdfBytes = baos.toByteArray();
             
             // 4. Upload to S3
-            String fileId = UUID.randomUUID().toString() + ".pdf";
+            String fileId = UUID.randomUUID() + ".pdf";
             String storagePath = "retailored-cvs/" + fileId;
             
-            s3Client.putObject(PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(storagePath)
-                    .contentType("application/pdf")
-                    .build(), RequestBody.fromBytes(pdfBytes));
+            fileStorageService.uploadBytes(storagePath, pdfBytes, "application/pdf");
             
-            // 5. Generate HMAC-signed URL
-            long expiry = Instant.now().plusSeconds(pdfExpiryHours * 3600L).getEpochSecond();
-            String dataToSign = fileId + ":" + expiry;
-            String signature = HmacUtils.calculateHmac(dataToSign, hmacSecret);
-            
-            String downloadUrl = String.format("/api/match/download/%s?expires=%d&sig=%s", fileId, expiry, signature);
+            // 5. Generate fresh signed URL
+            String downloadUrl = fileStorageService.generateSignedUrl(storagePath);
             
             PdfGenerationResult result = new PdfGenerationResult();
             result.setDownloadUrl(downloadUrl);
             result.setStoragePath(storagePath);
             result.setFileSizeBytes((long) pdfBytes.length);
-            result.setExpiresAt(Instant.ofEpochSecond(expiry));
+            result.setExpiresAt(Instant.now().plusSeconds(pdfExpiryHours * 3600L));
             
             return result;
         } catch (Exception e) {

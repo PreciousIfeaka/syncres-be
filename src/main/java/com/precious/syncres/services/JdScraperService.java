@@ -13,7 +13,7 @@ import java.io.IOException;
 @Slf4j
 public class JdScraperService {
 
-    @Value("${app.matcher.max-jd-chars:10000}")
+    @Value("${app.matcher.max-jd-chars}")
     private int maxJdChars;
 
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
