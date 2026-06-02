@@ -19,11 +19,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleAppException(AppException ex) {
         HttpStatus status = switch (ex.getErrorCode()) {
             case EMAIL_ALREADY_REGISTERED -> HttpStatus.CONFLICT;
-            case EMAIL_NOT_VERIFIED, JOB_ACCESS_DENIED -> HttpStatus.FORBIDDEN;
+            case EMAIL_NOT_VERIFIED, JOB_ACCESS_DENIED, DOWNLOAD_INVALID_SIGNATURE -> HttpStatus.FORBIDDEN;
             case OTP_INVALID, OTP_EXPIRED, INVALID_STATUS_TRANSITION, STATUS_IS_TERMINAL, CV_INPUT_REQUIRED -> HttpStatus.UNPROCESSABLE_ENTITY;
             case CV_NOT_FOUND, APPLICATION_NOT_FOUND, JOB_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case DOWNLOAD_EXPIRED -> HttpStatus.GONE;
-            case DOWNLOAD_INVALID_SIGNATURE -> HttpStatus.FORBIDDEN;
             default -> HttpStatus.BAD_REQUEST;
         };
 

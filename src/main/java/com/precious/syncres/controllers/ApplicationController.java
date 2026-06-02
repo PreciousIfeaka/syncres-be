@@ -100,7 +100,7 @@ public class ApplicationController {
     public ResponseEntity<?> deleteNote(
             @Parameter(description = "The UUID of the application") @PathVariable UUID id,
             @Parameter(description = "The UUID of the note to delete") @PathVariable UUID noteId) {
-        applicationService.deleteNote(noteId, id, SecurityUtils.getCurrentUserId());
+        applicationService.deleteNote(id, noteId, SecurityUtils.getCurrentUserId());
         return ResponseEntity.noContent().build();
     }
 

@@ -211,10 +211,14 @@ public class MatchJobService {
             }
         }
 
+        String rawError = jobResult.getErrorMessage();
+        String displayError = (rawError != null && rawError.length() < 25)
+                ? rawError
+                : (jobResult.getStatus() == MatchJobResult.JobStatus.FAILED ? "Internal error parsing result" : null);
         MatchResultPollDto pollDto = MatchResultPollDto.builder()
                 .jobId(jobId)
                 .status(jobResult.getStatus().name())
-                .errorMessage(jobResult.getErrorMessage())
+                .errorMessage(displayError)
                 .build();
 
         if (jobResult.getStatus() == MatchJobResult.JobStatus.COMPLETED && jobResult.getResultJson() != null) {

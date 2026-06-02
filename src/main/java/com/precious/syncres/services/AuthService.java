@@ -57,7 +57,6 @@ public class AuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND, "User not found"));
 
         if (user.isEmailVerified()) {
-            // Already verified, no need to resend (or handle as silent success)
             return;
         }
 
@@ -83,13 +82,8 @@ public class AuthService {
         token.setUsed(true);
         user.setEmailVerified(true);
         userRepository.save(user);
-
-        // Auto-login after verification or require manual login? 
-        // Specs say "/verify-email returns a AuthResponseDto (JWT issued on success)"
-        // But authenticationManager.authenticate requires the raw password which we don't have here.
-        // We can manually generate the JWT since we've verified the email.
         
-        String jwt = tokenProvider.generateTokenManual(user.getId().toString()); // Need to add this method
+        String jwt = tokenProvider.generateTokenManual(user.getId().toString());
 
         return AuthResponseDto.builder()
                 .token(jwt)

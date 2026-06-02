@@ -34,12 +34,4 @@ public class ApplicationNote {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
-
-    public enum NoteType {
-        GENERAL,
-        INTERVIEW_PREP,
-        RECRUITER_CONTACT,
-        SALARY,
-        FOLLOW_UP
-    }
 }
